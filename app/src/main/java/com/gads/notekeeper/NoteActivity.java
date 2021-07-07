@@ -16,7 +16,8 @@ import java.util.List;
 
 public class NoteActivity extends AppCompatActivity {
     //A constant for the putExtra gotten from NoteListActivity
-    public static final String NOTE_INFO = "com.gads.notekeeper.NOTE_INFO";
+    public static final String NOTE_POSITION = "com.gads.notekeeper.NOTE_POSITION";
+    public static final int POSITION_NOT_SET = -1;
     private NoteInfo mNote;
     private boolean mIsNewNote;
 
@@ -61,10 +62,15 @@ public class NoteActivity extends AppCompatActivity {
     private void readDisplayStateValues() {
         // Getting the note based on user selection from the NoteInfo class through Intent passed from the NoteListActivity
         Intent intent = getIntent();
-        mNote = intent.getParcelableExtra(NOTE_INFO);
+        // To get the note that corresponds to the user selection without Parcelable
+        int position = intent.getIntExtra(NOTE_POSITION, POSITION_NOT_SET);
 
         //Boolean Code for new Note
-        mIsNewNote = mNote == null;
+        mIsNewNote = position == POSITION_NOT_SET;
+
+        //Condition to get note based on its position in the DataManager
+        if (!mIsNewNote)
+            mNote = DataManager.getInstance().getNotes().get(position);
     }
 
     @Override

@@ -4,7 +4,6 @@ import android.content.Intent;
 import android.os.Bundle;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
-import com.google.android.material.snackbar.Snackbar;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -14,10 +13,7 @@ import android.widget.ArrayAdapter;
 import android.widget.ListView;
 
 import androidx.appcompat.widget.Toolbar;
-import androidx.navigation.NavController;
-import androidx.navigation.Navigation;
 import androidx.navigation.ui.AppBarConfiguration;
-import androidx.navigation.ui.NavigationUI;
 
 import java.util.List;
 
@@ -59,8 +55,10 @@ public class NoteListActivity extends AppCompatActivity {
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 Intent intent = new Intent(NoteListActivity.this, NoteActivity.class);
                 //To get the note from the NoteInfo class that corresponds to the user selection
-                NoteInfo note = (NoteInfo) listNotes.getItemAtPosition(position);
-                intent.putExtra(NoteActivity.NOTE_INFO, note);
+//                NoteInfo note = (NoteInfo) listNotes.getItemAtPosition(position);
+
+                // To get the note that corresponds to the user selection without Parcelable
+                intent.putExtra(NoteActivity.NOTE_POSITION, position);
                 startActivity(intent);
             }
         });
