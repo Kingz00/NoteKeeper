@@ -14,12 +14,14 @@ import android.widget.ListView;
 
 import androidx.appcompat.widget.Toolbar;
 import androidx.navigation.ui.AppBarConfiguration;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.List;
 
 public class NoteListActivity extends AppCompatActivity {
 
-    private ArrayAdapter<NoteInfo> mAdapterNotes;
+    private NoteRecyclerAdapter mNoteRecyclerAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -42,31 +44,20 @@ public class NoteListActivity extends AppCompatActivity {
     }
 
     private void initializeDisplayContent() {
-        final ListView listNotes = findViewById(R.id.list_note);
-        //Get List of Notes from the DataManager Class
+
+        //Setting up the RecyclerView and LayoutManager
+        final RecyclerView recyclerNotes = (RecyclerView) findViewById(R.id.list_notes);
+        final LinearLayoutManager notesLayoutManager = new LinearLayoutManager(this);
+        recyclerNotes.setLayoutManager(notesLayoutManager);
+
         List<NoteInfo> notes = DataManager.getInstance().getNotes();
-        //Populate the list of notes in an Array Adapter
-        mAdapterNotes = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, notes);
-        listNotes.setAdapter(mAdapterNotes);
-
-        //Set click events on items in the listview
-        listNotes.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                Intent intent = new Intent(NoteListActivity.this, NoteActivity.class);
-                //To get the note from the NoteInfo class that corresponds to the user selection
-//                NoteInfo note = (NoteInfo) listNotes.getItemAtPosition(position);
-
-                // To get the note that corresponds to the user selection without Parcelable
-                intent.putExtra(NoteActivity.NOTE_POSITION, position);
-                startActivity(intent);
-            }
-        });
+        mNoteRecyclerAdapter = new NoteRecyclerAdapter(this, notes);
+        recyclerNotes.setAdapter(mNoteRecyclerAdapter);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        mAdapterNotes.notifyDataSetChanged();
+        mNoteRecyclerAdapter.notifyDataSetChanged();
     }
 }

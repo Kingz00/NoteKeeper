@@ -164,9 +164,39 @@ public class NoteActivity extends AppCompatActivity {
         }else if (id == R.id.action_cancel){
             mIsCancelling = true;
             finish();
+        } else if(id == R.id.action_next){
+            moveNext();
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    //Gets called only when the menu is initially displayed.
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        MenuItem item = menu.findItem(R.id.action_next);
+        //get the index of the very last note on the list
+        int lastNoteIndex = DataManager.getInstance().getNotes().size() - 1;
+        //Disables the menu item for action_next  on the last note in the list
+        item.setEnabled(mNotePosition < lastNoteIndex);
+
+        return super.onPrepareOptionsMenu(menu);
+    }
+
+    private void moveNext() {
+        //Save the changes made from the previous note
+        savenote();
+        //Increment mNote position to get the next note
+        ++mNotePosition;
+        //Get the note that corresponds to the position from the DataManager
+        mNote = DataManager.getInstance().getNotes().get(mNotePosition);
+
+        //saves the original values of the note in the case where the user cancels
+        saveOriginalNoteValues();
+        //Call displayNote to display the note obtained from the DataManager
+        displayNote(mSpinnerCourses, mTextNoteTitle, mTextNoteText);
+        //allows the onPrepareOptionsMenu to get called whenever the next note is displayed
+        invalidateOptionsMenu();
     }
 
     private void sendEmail() {
