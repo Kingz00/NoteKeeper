@@ -35,7 +35,7 @@ public class NoteRecyclerAdapter extends RecyclerView.Adapter<NoteRecyclerAdapte
         return new ViewHolder(itemView);
     }
 
-    //Responsible for associating data with the views
+    //Responsible for associating data with the views in the ViewHolder class
     @Override
     public void onBindViewHolder(@NonNull NoteRecyclerAdapter.ViewHolder holder, int position) {
         //Getting to note that corresponds with the position
@@ -43,8 +43,8 @@ public class NoteRecyclerAdapter extends RecyclerView.Adapter<NoteRecyclerAdapte
         //Getting each of the textviews from the ViewHolder
         holder.mTextCourse.setText(note.getCourse().getTitle());
         holder.mTextTitle.setText(note.getTitle());
-        //To set the position each time the view is associated with different data
-        holder.mCurrentPosition = position;
+        //get the id associated with the note
+        holder.mId = note.getId();
     }
 
     //Indicates the number of data items
@@ -59,7 +59,7 @@ public class NoteRecyclerAdapter extends RecyclerView.Adapter<NoteRecyclerAdapte
 
         public final TextView mTextCourse;
         public final TextView mTextTitle;
-        public int mCurrentPosition;
+        public int mId;
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -70,7 +70,7 @@ public class NoteRecyclerAdapter extends RecyclerView.Adapter<NoteRecyclerAdapte
                 @Override
                 public void onClick(View v) {
                     Intent intent = new Intent(mContext, NoteActivity.class);
-                    intent.putExtra(NoteActivity.NOTE_POSITION, mCurrentPosition);
+                    intent.putExtra(NoteActivity.NOTE_ID, mId);
                     mContext.startActivity(intent);
                 }
             });

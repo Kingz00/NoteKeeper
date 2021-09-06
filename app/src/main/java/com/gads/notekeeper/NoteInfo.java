@@ -3,10 +3,20 @@ package com.gads.notekeeper;
 import android.os.Parcel;
 import android.os.Parcelable;
 
+import androidx.annotation.NonNull;
+
 public final class NoteInfo implements Parcelable {
     private CourseInfo mCourse;
     private String mTitle;
     private String mText;
+    private int mId;
+
+    public NoteInfo(int id, CourseInfo course, String title, String text) {
+        mCourse = course;
+        mTitle = title;
+        mText = text;
+        mId = id;
+    }
 
     public NoteInfo(CourseInfo course, String title, String text) {
         mCourse = course;
@@ -18,6 +28,10 @@ public final class NoteInfo implements Parcelable {
         mCourse = parcel.readParcelable(CourseInfo.class.getClassLoader());
         mTitle = parcel.readString();
         mText = parcel.readString();
+    }
+
+    public int getId(){
+        return mId;
     }
 
     public CourseInfo getCourse() {

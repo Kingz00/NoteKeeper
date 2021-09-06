@@ -1,6 +1,8 @@
 package com.gads.notekeeper;
 
 import android.content.Intent;
+import android.database.SQLException;
+import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
@@ -8,12 +10,8 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.view.View;
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
-import android.widget.ListView;
 
 import androidx.appcompat.widget.Toolbar;
-import androidx.navigation.ui.AppBarConfiguration;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -22,6 +20,8 @@ import java.util.List;
 public class NoteListActivity extends AppCompatActivity {
 
     private NoteRecyclerAdapter mNoteRecyclerAdapter;
+//    private NotesOpenHelper mOpenHelper;
+//    private CoursesOpenHelper mCoursesOpenHelper;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,6 +41,8 @@ public class NoteListActivity extends AppCompatActivity {
         });
 
         initializeDisplayContent();
+//        database();
+
     }
 
     private void initializeDisplayContent() {
@@ -54,10 +56,21 @@ public class NoteListActivity extends AppCompatActivity {
         mNoteRecyclerAdapter = new NoteRecyclerAdapter(this, notes);
         recyclerNotes.setAdapter(mNoteRecyclerAdapter);
     }
+//    public void database() throws SQLException{
+//        mOpenHelper = new NotesOpenHelper(this);
+//        mCoursesOpenHelper = new CoursesOpenHelper(this);
+//        SQLiteDatabase notesDb = mOpenHelper.getReadableDatabase();
+//        SQLiteDatabase coursesDb = mCoursesOpenHelper.getReadableDatabase();
+//    }
 
     @Override
     protected void onResume() {
         super.onResume();
         mNoteRecyclerAdapter.notifyDataSetChanged();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
     }
 }

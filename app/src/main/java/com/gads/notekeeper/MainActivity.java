@@ -2,6 +2,7 @@ package com.gads.notekeeper;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.view.MenuItem;
 import android.view.View;
@@ -41,6 +42,7 @@ public class MainActivity extends AppCompatActivity {
     private LinearLayoutManager mNotesLayoutManager;
     private CourseRecyclerAdapter mCourseRecyclerAdapter;
     private GridLayoutManager mCoursesLayoutManager;
+    private NotesOpenHelper mDbOpenHelper;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,6 +50,9 @@ public class MainActivity extends AppCompatActivity {
 
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+
+        //instance of the SQLiteOpenHelper
+        mDbOpenHelper = new NotesOpenHelper(this);
 
         setSupportActionBar(binding.appBarMain.toolbar);
         binding.appBarMain.toolbar.setTitle(getString(R.string.app_name));
@@ -137,6 +142,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void initializeDisplayContent() {
+        //load data from SQL database called from the DataManager class
+        DataManager.loadFromDatabase(mDbOpenHelper);
 
         //Setting up the RecyclerView and LayoutManager
         mRecyclerItems = (RecyclerView) findViewById(R.id.list_items);
@@ -201,5 +208,11 @@ public class MainActivity extends AppCompatActivity {
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    protected void onDestroy() {
+        mDbOpenHelper.close();
+        super.onDestroy();
     }
 }

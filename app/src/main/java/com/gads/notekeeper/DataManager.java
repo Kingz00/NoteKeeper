@@ -1,5 +1,11 @@
 package com.gads.notekeeper;
 
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
+
+import com.gads.notekeeper.NoteKeeperDatabaseContract.CourseInfoEntry;
+import com.gads.notekeeper.NoteKeeperDatabaseContract.NoteInfoEntry;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -12,10 +18,85 @@ public class DataManager {
     public static DataManager getInstance() {
         if(ourInstance == null) {
             ourInstance = new DataManager();
-            ourInstance.initializeCourses();
-            ourInstance.initializeExampleNotes();
+//            ourInstance.initializeCourses();
+//            ourInstance.initializeExampleNotes();
         }
         return ourInstance;
+    }
+
+    //static method to load data from the SQL database
+    public static void loadFromDatabase(NotesOpenHelper dbHelper){
+        //check if the SQL database exist and create it if it doesn't
+        SQLiteDatabase db = dbHelper.getReadableDatabase();
+        //query the SQL database and store the result of the query in a Cursor
+        final String[] courseColumns = {CourseInfoEntry.COLUMN_COURSE_ID, CourseInfoEntry.COLUMN_COURSE_TITLE};
+        Cursor courseCursor = db.query(CourseInfoEntry.TABLE_NAME, courseColumns,
+                null, null, null, null, CourseInfoEntry.COLUMN_COURSE_TITLE + " DESC");
+        //NB: DESC concatenated with the orderBy parameter sorts the courses in descending order
+
+        //method to get the courses from the database using the cursor's moveToNext method
+        loadCoursesFromDatabase(courseCursor);
+
+        String noteOrderBy = NoteInfoEntry.COLUMN_COURSE_ID + "," + NoteInfoEntry.COLUMN_NOTE_TITLE;
+        final String[] noteColumns = {NoteInfoEntry._ID, NoteInfoEntry.COLUMN_COURSE_ID, NoteInfoEntry.COLUMN_NOTE_TITLE,
+                NoteInfoEntry.COLUMN_NOTE_TEXT};
+        Cursor noteCursor = db.query(NoteInfoEntry.TABLE_NAME, noteColumns,
+                null, null, null, null, noteOrderBy);
+        //method to get the notes from the database using the cursor's moveToNext method
+        loadNotesFromDatabase(noteCursor);
+    }
+
+    private static void loadNotesFromDatabase(Cursor cursor) {
+        //get the cursor position for the columns in the note query
+        int courseIdPos = cursor.getColumnIndex(NoteInfoEntry.COLUMN_COURSE_ID);
+        int noteTitlePos = cursor.getColumnIndex(NoteInfoEntry.COLUMN_NOTE_TITLE);
+        int noteTextPos = cursor.getColumnIndex(NoteInfoEntry.COLUMN_NOTE_TEXT);
+        int idPos = cursor.getColumnIndex(NoteInfoEntry._ID);
+
+        DataManager dm = getInstance();
+        dm.mNotes.clear();
+
+        //iterate through the rows in the note info table
+        while(cursor.moveToNext()){
+            //get the values for the note at the cursor's current position and store it in a String
+            String courseId = cursor.getString(courseIdPos);
+            String noteTitle = cursor.getString(noteTitlePos);
+            String noteText = cursor.getString(noteTextPos);
+            int id = cursor.getInt(idPos);
+
+            //get the course from the DataManager that corresponds to the course obtained from the cursor
+            CourseInfo noteCourse = DataManager.getInstance().getCourse(courseId);
+            //get an instance of the NoteInfo class and pass in the values obtained
+            NoteInfo note = new NoteInfo(id, noteCourse, noteTitle, noteText);
+            dm.mNotes.add(note);
+        }
+        //close the cursor
+        cursor.close();
+    }
+
+    private static void loadCoursesFromDatabase(Cursor cursor) {
+        //get the cursor position for the columns in the course query to get the column values
+        int courseIdPos = cursor.getColumnIndex(CourseInfoEntry.COLUMN_COURSE_ID);
+        int courseTitlePos = cursor.getColumnIndex(CourseInfoEntry.COLUMN_COURSE_TITLE);
+
+        //reference to the DataManager singleton
+        DataManager dm = getInstance();
+        //clear courses that might already be loaded in the DataManager
+        dm.mCourses.clear();
+
+        //iterating through the rows in the database
+        while(cursor.moveToNext()){
+            //get the values for the course id and title from the cursor at a given row position and store in a String
+            String courseId = cursor.getString(courseIdPos);
+            String courseTitle = cursor.getString(courseTitlePos);
+
+            //create an instance of the CourseInfo and pass in the values obtained from the cursor
+            CourseInfo course = new CourseInfo(courseId, courseTitle, null);
+            //add the values to the course list
+            dm.mCourses.add(course);
+        }
+        //close the cursor after use
+        cursor.close();
     }
 
     public String getCurrentUserName() {
@@ -84,12 +165,16 @@ public class DataManager {
 
     //region Initialization code
 
+    /* code below no longer applies to use in the app
+
+
     private void initializeCourses() {
         mCourses.add(initializeCourse1());
         mCourses.add(initializeCourse2());
         mCourses.add(initializeCourse3());
         mCourses.add(initializeCourse4());
     }
+
 
     public void initializeExampleNotes() {
         final DataManager dm = getInstance();
@@ -133,6 +218,7 @@ public class DataManager {
         mNotes.add(new NoteInfo(course, "Serialization",
                 "Remember to include SerialVersionUID to assure version compatibility"));
     }
+
 
     private CourseInfo initializeCourse1() {
         List<ModuleInfo> modules = new ArrayList<>();
@@ -189,6 +275,10 @@ public class DataManager {
 
         return new CourseInfo("java_core", "Java Fundamentals: The Core Platform", modules);
     }
+
+
     //endregion
+
+     */
 
 }
