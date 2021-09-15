@@ -30,7 +30,7 @@ public class DataManager {
         SQLiteDatabase db = dbHelper.getReadableDatabase();
         //query the SQL database and store the result of the query in a Cursor
         final String[] courseColumns = {CourseInfoEntry.COLUMN_COURSE_ID, CourseInfoEntry.COLUMN_COURSE_TITLE};
-        Cursor courseCursor = db.query(CourseInfoEntry.TABLE_NAME, courseColumns,
+        final Cursor courseCursor = db.query(CourseInfoEntry.TABLE_NAME, courseColumns,
                 null, null, null, null, CourseInfoEntry.COLUMN_COURSE_TITLE + " DESC");
         //NB: DESC concatenated with the orderBy parameter sorts the courses in descending order
 
@@ -40,7 +40,7 @@ public class DataManager {
         String noteOrderBy = NoteInfoEntry.COLUMN_COURSE_ID + "," + NoteInfoEntry.COLUMN_NOTE_TITLE;
         final String[] noteColumns = {NoteInfoEntry._ID, NoteInfoEntry.COLUMN_COURSE_ID, NoteInfoEntry.COLUMN_NOTE_TITLE,
                 NoteInfoEntry.COLUMN_NOTE_TEXT};
-        Cursor noteCursor = db.query(NoteInfoEntry.TABLE_NAME, noteColumns,
+        final Cursor noteCursor = db.query(NoteInfoEntry.TABLE_NAME, noteColumns,
                 null, null, null, null, noteOrderBy);
         //method to get the notes from the database using the cursor's moveToNext method
         loadNotesFromDatabase(noteCursor);
@@ -65,7 +65,7 @@ public class DataManager {
             int id = cursor.getInt(idPos);
 
             //get the course from the DataManager that corresponds to the course obtained from the cursor
-            CourseInfo noteCourse = DataManager.getInstance().getCourse(courseId);
+            CourseInfo noteCourse = dm.getCourse(courseId);
             //get an instance of the NoteInfo class and pass in the values obtained
             NoteInfo note = new NoteInfo(id, noteCourse, noteTitle, noteText);
             dm.mNotes.add(note);

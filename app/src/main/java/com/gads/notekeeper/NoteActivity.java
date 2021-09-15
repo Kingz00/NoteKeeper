@@ -5,24 +5,35 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.loader.app.LoaderManager;
+import androidx.loader.content.CursorLoader;
+import androidx.loader.content.Loader;
 
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
+import android.widget.SimpleCursorAdapter;
 import android.widget.Spinner;
 
+import com.gads.notekeeper.NoteKeeperDatabaseContract.CourseInfoEntry;
 import com.gads.notekeeper.NoteKeeperDatabaseContract.NoteInfoEntry;
+
+import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
-public class NoteActivity extends AppCompatActivity {
+public class NoteActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<Cursor> {
     //A constant for the putExtra gotten from NoteListActivity
     public static final String NOTE_ID = "com.gads.notekeeper.NOTE_ID";
     public static final int ID_NOT_SET = -1;
+    public static final int LOADER_NOTES = 0;
+    public static final int LOADER_COURSES = 1;
     private NoteInfo mNote;
     private boolean mIsNewNote;
     private Spinner mSpinnerCourses;
@@ -37,6 +48,9 @@ public class NoteActivity extends AppCompatActivity {
     private int mNoteTitlePos;
     private int mNoteTextPos;
     private SQLiteDatabase mDb;
+    private SimpleCursorAdapter mAdaperCourses;
+    private boolean mCoursesQueryFinished;
+    private boolean mNotesQueryFinished;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,12 +74,17 @@ public class NoteActivity extends AppCompatActivity {
         //instance of the SQLiteOpenHelper
         mDbOpenHelper = new NotesOpenHelper(this);
 
-        //Get a list of courses from the DataManager
-        List<CourseInfo> courses = DataManager.getInstance().getCourses();
+
         //Adapter to associate the list with the spinner
-        ArrayAdapter<CourseInfo> adaperCourses = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, courses);
-        adaperCourses.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        mSpinnerCourses.setAdapter(adaperCourses);
+        mAdaperCourses = new SimpleCursorAdapter(this, android.R.layout.simple_spinner_item, null,
+                new String[] {CourseInfoEntry.COLUMN_COURSE_TITLE},
+                new int[] {android.R.id.text1}, 0);
+        mAdaperCourses.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        mSpinnerCourses.setAdapter(mAdaperCourses);
+
+        //method to load data into the SimpleCursorAdapter done in the background thread
+        LoaderManager.getInstance(this).initLoader(LOADER_COURSES, null, this);
+//        getLoaderManager().initLoader(LOADER_COURSES, null,  this);
 
         readDisplayStateValues();
 
@@ -73,9 +92,16 @@ public class NoteActivity extends AppCompatActivity {
         mTextNoteText = findViewById(R.id.text_note_text);
 
         if (!mIsNewNote)
-            loadNoteData();
+            //load data for the note in the database from the LoaderManager in the Background thread
+            LoaderManager.getInstance(this).initLoader(LOADER_NOTES, null, this);
+//            getLoaderManager().initLoader(LOADER_NOTES, null,  this);
 
 //        saveOriginalNoteValues();
+
+    }
+
+    //method for list of courses in the spinner
+    private void loadCourseData() {
 
     }
 
@@ -92,9 +118,6 @@ public class NoteActivity extends AppCompatActivity {
             createNewNote();
         }
 
-        //Read note data from the database
-        mDb = mDbOpenHelper.getReadableDatabase();
-
 
         //Line below obsolete since notes are being read from the database
 //        mNote = DataManager.getInstance().getNotes().get(mNoteId);
@@ -109,22 +132,7 @@ public class NoteActivity extends AppCompatActivity {
     }
 
     private void loadNoteData() {
-        //selection criteria to return a subset of the rows in the table
-        String selection = NoteInfoEntry._ID + " = ?";
-        String[] selectionArgs = {Integer.toString(mNoteId)};
 
-        String[] noteColumns = {NoteInfoEntry.COLUMN_COURSE_ID, NoteInfoEntry.COLUMN_NOTE_TITLE, NoteInfoEntry.COLUMN_NOTE_TEXT};
-
-        mNoteCursor = mDb.query(NoteInfoEntry.TABLE_NAME, noteColumns, selection, selectionArgs, null, null, null);
-
-        //get the positions of the courseId, noteTitle and noteText columns in the cursor
-        mCourseIdPos = mNoteCursor.getColumnIndex(NoteInfoEntry.COLUMN_COURSE_ID);
-        mNoteTitlePos = mNoteCursor.getColumnIndex(NoteInfoEntry.COLUMN_NOTE_TITLE);
-        mNoteTextPos = mNoteCursor.getColumnIndex(NoteInfoEntry.COLUMN_NOTE_TEXT);
-
-        //moveToNext is called to move to the first row in the table
-        mNoteCursor.moveToNext();
-        displayNote();
     }
 
     private void displayNote() {
@@ -133,18 +141,34 @@ public class NoteActivity extends AppCompatActivity {
         String noteTitle = mNoteCursor.getString(mNoteTitlePos);
         String noteText = mNoteCursor.getString(mNoteTextPos);
 
-        //Get list of courses from the DataManager
-        List<CourseInfo> courses = DataManager.getInstance().getCourses();
-
-        //Get the course that corresponds to the CourseId read from the database
-        CourseInfo course = DataManager.getInstance().getCourse(courseId);
-        //Get the index of Note's course from the list
-        int courseIndex = courses.indexOf(course);
+        //getting the index of the CourseId for the selected note from the spinner's cursor
+        int courseIndex = getIndexOfCourseId(courseId);
         //Populating the spinner with the course
         mSpinnerCourses.setSelection(courseIndex);
         //Getting the note title and note text
         mTextNoteTitle.setText(noteTitle);
         mTextNoteText.setText(noteText);
+    }
+
+    private int getIndexOfCourseId(String courseId) {
+        //reference to the cursor used to populate the spinner
+        Cursor cursor = mAdaperCourses.getCursor();
+        //getting the column's position in the cursor that holds the CourseId
+        int courseIdPos = cursor.getColumnIndex(CourseInfoEntry.COLUMN_COURSE_ID);
+        //getting the course that corresponds with the note selected using the row index
+        int courseRowIndex = 0;
+
+        //iterating through the courses until the exact courseId is found
+        boolean more = cursor.moveToFirst();
+        while (more){
+            String cursorCourseId = cursor.getString(courseIdPos);
+            if (courseId.equals(cursorCourseId))
+                break;
+            courseRowIndex++;
+            more = cursor.moveToNext();
+        }
+
+        return courseRowIndex;
     }
 
     private void createNewNote() {
@@ -164,8 +188,10 @@ public class NoteActivity extends AppCompatActivity {
                 storePreviousNoteValues();
             }
         }else {
-        saveNote();
+//        saveNote();
         }
+        LoaderManager.getInstance(this).destroyLoader(LOADER_NOTES);
+        LoaderManager.getInstance(this).destroyLoader(LOADER_COURSES);
     }
 
     @Override
@@ -260,5 +286,100 @@ public class NoteActivity extends AppCompatActivity {
     protected void onDestroy() {
         mDbOpenHelper.close();
         super.onDestroy();
+    }
+
+    @NonNull
+    @NotNull
+    @Override
+    public Loader<Cursor> onCreateLoader(int id, @Nullable @org.jetbrains.annotations.Nullable Bundle args) {
+        //querying the SQLite database using the CursorLoader
+        CursorLoader loader = null;
+        //checks the id passed in the onCreate method for LoaderManager
+        if (id == LOADER_NOTES)
+            loader = createLoaderNotes();
+        else if (id == LOADER_COURSES)
+            loader = createLoaderCourses();
+        return loader;
+    }
+    //querying SQLite database for list of courses on the background
+    private CursorLoader createLoaderCourses() {
+        //create a boolean value to check if the courses in the spinner have been queried
+        mCoursesQueryFinished = false;
+        return new CursorLoader(this){
+            @Override
+            public Cursor loadInBackground() {
+                SQLiteDatabase db = mDbOpenHelper.getReadableDatabase();
+                String[] courseColumns = {CourseInfoEntry.COLUMN_COURSE_TITLE, CourseInfoEntry.COLUMN_COURSE_ID, CourseInfoEntry._ID};
+                return db.query(CourseInfoEntry.TABLE_NAME, courseColumns, null, null, null, null,
+                        CourseInfoEntry.COLUMN_COURSE_TITLE);
+            }
+        };
+    }
+
+    //querying SQLite database for list of notes on the background
+    private CursorLoader createLoaderNotes() {
+        //create a boolean value to check if the notes have been queried
+        mNotesQueryFinished = false;
+        return new CursorLoader(this){
+            @Override
+            public Cursor loadInBackground() {
+                //Read note data from the database
+                mDb = mDbOpenHelper.getReadableDatabase();
+                //selection criteria to return a subset of the rows in the table
+                String selection = NoteInfoEntry._ID + " = ?";
+                String[] selectionArgs = {Integer.toString(mNoteId)};
+
+                String[] noteColumns = {NoteInfoEntry.COLUMN_COURSE_ID, NoteInfoEntry.COLUMN_NOTE_TITLE, NoteInfoEntry.COLUMN_NOTE_TEXT};
+
+                return mDb.query(NoteInfoEntry.TABLE_NAME, noteColumns, selection, selectionArgs,
+                        null, null, null);
+            }
+        };
+    }
+
+    //load note data
+    @Override
+    public void onLoadFinished(@NonNull @NotNull Loader<Cursor> loader, Cursor data) {
+        if (loader.getId() == LOADER_NOTES) {
+            mNotesQueryFinished = true;
+            loadFinishedNotes(data);
+        }
+        else if (loader.getId() == LOADER_COURSES) {
+            mAdaperCourses.changeCursor(data);
+            mCoursesQueryFinished = true;
+            //method to display the note after the courses in the spinner and the notes has been queried
+            displayNoteWhenQueriesFinished();
+        }
+    }
+
+    private void loadFinishedNotes(Cursor data) {
+        mNoteCursor = data;
+        //get the positions of the courseId, noteTitle and noteText columns in the cursor
+        mCourseIdPos = mNoteCursor.getColumnIndex(NoteInfoEntry.COLUMN_COURSE_ID);
+        mNoteTitlePos = mNoteCursor.getColumnIndex(NoteInfoEntry.COLUMN_NOTE_TITLE);
+        mNoteTextPos = mNoteCursor.getColumnIndex(NoteInfoEntry.COLUMN_NOTE_TEXT);
+
+        //moveToNext is called to move to the first row in the table
+        mNoteCursor.moveToNext();
+
+        //method to display the note after the courses in the spinner and the notes has been queried
+        displayNoteWhenQueriesFinished();
+    }
+
+    private void displayNoteWhenQueriesFinished() {
+        if (mNotesQueryFinished && mCoursesQueryFinished)
+            displayNote();
+    }
+
+    @Override
+    public void onLoaderReset(@NonNull @NotNull Loader<Cursor> loader) {
+        if (loader.getId() == LOADER_NOTES) {
+            if (mNoteCursor != null)
+                mNoteCursor.close();
+        }
+        else if (loader.getId() == LOADER_COURSES) {
+            //close cursor for the  spinner
+            mAdaperCourses.changeCursor(null);
+        }
     }
 }

@@ -2,6 +2,7 @@ package com.gads.notekeeper;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.view.MenuItem;
@@ -10,10 +11,15 @@ import android.view.Menu;
 import android.widget.TextView;
 
 
+import com.gads.notekeeper.NoteKeeperDatabaseContract.NoteInfoEntry;
 import com.google.android.material.navigation.NavigationView;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.core.view.GravityCompat;
+import androidx.loader.app.LoaderManager;
+import androidx.loader.content.CursorLoader;
+import androidx.loader.content.Loader;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.navigation.ui.AppBarConfiguration;
@@ -32,8 +38,9 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<Cursor> {
 
+    public static final int LOADER_NOTES = 0;
     private AppBarConfiguration mAppBarConfiguration;
     private ActivityMainBinding binding;
     private NoteRecyclerAdapter mNoteRecyclerAdapter;
@@ -153,10 +160,8 @@ public class MainActivity extends AppCompatActivity {
         //Layout Manager for Courses
         mCoursesLayoutManager = new GridLayoutManager(this, getResources().getInteger(R.integer.course_grid_span));
 
-        //Reference to the list of notes in the DataManager
-        List<NoteInfo> notes = DataManager.getInstance().getNotes();
         //Populating the Notes RecyclerAdapter with the list of notes
-        mNoteRecyclerAdapter = new NoteRecyclerAdapter(this, notes);
+        mNoteRecyclerAdapter = new NoteRecyclerAdapter(this, null);
         //Reference to the list of courses in the DataManager
         List<CourseInfo> courses = DataManager.getInstance().getCourses();
         //Populating the Course RecyclerAdapter with the list of courses
@@ -178,8 +183,13 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        mNoteRecyclerAdapter.notifyDataSetChanged();
+        //getting latest notes from the Database
+        LoaderManager.getInstance(this).restartLoader(LOADER_NOTES, null, this);
         updateNavHeader();
+    }
+
+    private void loadNotes() {
+
     }
 
     private void updateNavHeader() {
@@ -214,5 +224,50 @@ public class MainActivity extends AppCompatActivity {
     protected void onDestroy() {
         mDbOpenHelper.close();
         super.onDestroy();
+    }
+
+    @NonNull
+    @NotNull
+    @Override
+    public Loader<Cursor> onCreateLoader(int id, @Nullable @org.jetbrains.annotations.Nullable Bundle args) {
+        CursorLoader loader = null;
+        if (id == LOADER_NOTES)
+            loader = createNoteLoader();
+        return loader;
+    }
+
+    private CursorLoader createNoteLoader() {
+        return new CursorLoader(this){
+            @Override
+            public Cursor loadInBackground() {
+                SQLiteDatabase db = mDbOpenHelper.getReadableDatabase();
+                String noteOrderBy = NoteInfoEntry.COLUMN_COURSE_ID + "," + NoteInfoEntry.COLUMN_NOTE_TITLE;
+                final String[] noteColumns = {NoteInfoEntry._ID,
+                        NoteInfoEntry.COLUMN_COURSE_ID,
+                        NoteInfoEntry.COLUMN_NOTE_TITLE};
+                return db.query(NoteInfoEntry.TABLE_NAME, noteColumns,
+                        null, null, null, null, noteOrderBy);
+            }
+        };
+    }
+
+    @Override
+    public void onLoadFinished(@NonNull @NotNull Loader<Cursor> loader, Cursor data) {
+        if (loader.getId() == LOADER_NOTES)
+            mNoteRecyclerAdapter.changeCursor(data);
+    }
+
+    @Override
+    public void onLoaderReset(@NonNull @NotNull Loader<Cursor> loader) {
+        if (loader.getId() == LOADER_NOTES){
+            mNoteRecyclerAdapter.changeCursor(null);
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        //destroy the loader before leaving the activity
+        LoaderManager.getInstance(this).destroyLoader(LOADER_NOTES);
     }
 }
