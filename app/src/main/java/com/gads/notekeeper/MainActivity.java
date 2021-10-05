@@ -11,7 +11,9 @@ import android.view.Menu;
 import android.widget.TextView;
 
 
+import com.gads.notekeeper.NoteKeeperDatabaseContract.CourseInfoEntry;
 import com.gads.notekeeper.NoteKeeperDatabaseContract.NoteInfoEntry;
+import com.gads.notekeeper.NoteKeeperProviderContract.Notes;
 import com.google.android.material.navigation.NavigationView;
 
 import androidx.annotation.NonNull;
@@ -231,25 +233,46 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
     @Override
     public Loader<Cursor> onCreateLoader(int id, @Nullable @org.jetbrains.annotations.Nullable Bundle args) {
         CursorLoader loader = null;
-        if (id == LOADER_NOTES)
-            loader = createNoteLoader();
+        if (id == LOADER_NOTES) {
+            final String[] noteColumns = {
+                    Notes._ID,
+                    Notes.COLUMN_NOTE_TITLE,
+                    Notes.COLUMN_COURSE_TITLE
+            };
+
+            final String noteOrderBy =
+                    Notes.COLUMN_COURSE_TITLE + "," +
+                    Notes.COLUMN_NOTE_TITLE;
+
+            loader = new CursorLoader(this, Notes.CONTENT_EXPANDED_URI, noteColumns, null, null, noteOrderBy);
+        }
         return loader;
     }
 
-    private CursorLoader createNoteLoader() {
-        return new CursorLoader(this){
-            @Override
-            public Cursor loadInBackground() {
-                SQLiteDatabase db = mDbOpenHelper.getReadableDatabase();
-                String noteOrderBy = NoteInfoEntry.COLUMN_COURSE_ID + "," + NoteInfoEntry.COLUMN_NOTE_TITLE;
-                final String[] noteColumns = {NoteInfoEntry._ID,
-                        NoteInfoEntry.COLUMN_COURSE_ID,
-                        NoteInfoEntry.COLUMN_NOTE_TITLE};
-                return db.query(NoteInfoEntry.TABLE_NAME, noteColumns,
-                        null, null, null, null, noteOrderBy);
-            }
-        };
-    }
+//    private CursorLoader createNoteLoader() {
+//        return new CursorLoader(this){
+//            @Override
+//            public Cursor loadInBackground() {
+//                SQLiteDatabase db = mDbOpenHelper.getReadableDatabase();
+//
+//                final String[] noteColumns = {NoteInfoEntry.getQName(NoteInfoEntry._ID),
+//                        NoteInfoEntry.COLUMN_NOTE_TITLE,
+//                        CourseInfoEntry.COLUMN_COURSE_TITLE
+//                };
+//
+//                //using a JOIN clause to get the Course Title from the CourseInfo Table that matches the CourseId in the NoteInfo Table
+//                //note_info JOIN course_info ON note_info.course_id = course_info.course_id
+//                String tablesWithJoin = NoteInfoEntry.TABLE_NAME + " JOIN " +
+//                        CourseInfoEntry.TABLE_NAME + " ON " +
+//                        NoteInfoEntry.getQName(NoteInfoEntry.COLUMN_COURSE_ID) + " = " +
+//                        CourseInfoEntry.getQName(CourseInfoEntry.COLUMN_COURSE_ID);
+//
+//                final String noteOrderBy = CourseInfoEntry.COLUMN_COURSE_TITLE + "," + NoteInfoEntry.COLUMN_NOTE_TITLE;
+//                return db.query(tablesWithJoin, noteColumns,
+//                        null, null, null, null, noteOrderBy);
+//            }
+//        };
+//    }
 
     @Override
     public void onLoadFinished(@NonNull @NotNull Loader<Cursor> loader, Cursor data) {

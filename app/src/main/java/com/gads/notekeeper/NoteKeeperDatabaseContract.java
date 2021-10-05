@@ -18,6 +18,18 @@ public final class NoteKeeperDatabaseContract {
         public static final String COLUMN_COURSE_ID = "course_id";
         public static final String COLUMN_COURSE_TITLE = "course_title";
 
+        //creating INDEXES
+        // CREATE INDEX course_info_index1 ON course_info (course_title)
+        public static final String INDEX1 = TABLE_NAME + "_index1";
+        public static final String SQL_CREATE_INDEX = "CREATE INDEX " + INDEX1 + " ON " + TABLE_NAME + " (" + COLUMN_COURSE_TITLE + ")";
+
+
+        //helper method to avoid explicit concatenation of table name with column name
+        public static final String getQName(String columnName){
+            return TABLE_NAME + "." + columnName;
+        }
+
+
         //Constant for the SQL to create the Table
         // CREATE TABLE TABLE_NAME (Column1, Column2, ....)
 
@@ -40,6 +52,14 @@ public final class NoteKeeperDatabaseContract {
         public static final String COLUMN_COURSE_ID = "course_id";
         public static final String COLUMN_NOTE_TITLE = "note_title";
         public static final String COLUMN_NOTE_TEXT = "note_text";
+
+        public static final String INDEX1 = TABLE_NAME + "_index1";
+        public static final String SQL_CREATE_INDEX = "CREATE INDEX " + INDEX1 + " ON " + TABLE_NAME + " (" + COLUMN_NOTE_TITLE + ")";
+
+        //helper method to avoid explicit concatenation of table name with column name
+        public static final String getQName(String columnName){
+            return TABLE_NAME + "." + columnName;
+        }
 
         //Constant to create the note info table
         public static final String SQL_CREATE_TABLE = "CREATE TABLE " + TABLE_NAME + " (" + _ID + " INTEGER PRIMARY KEY, " +

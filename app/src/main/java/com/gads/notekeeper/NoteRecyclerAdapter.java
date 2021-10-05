@@ -11,6 +11,7 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.gads.notekeeper.NoteKeeperDatabaseContract.CourseInfoEntry;
 import com.gads.notekeeper.NoteKeeperDatabaseContract.NoteInfoEntry;
 
 import java.util.List;
@@ -37,8 +38,9 @@ public class NoteRecyclerAdapter extends RecyclerView.Adapter<NoteRecyclerAdapte
         if (mCursor == null)
             return;
         // Get column indexes from mCursor
-        mCoursePos = mCursor.getColumnIndex(NoteInfoEntry.COLUMN_COURSE_ID);
+        mCoursePos = mCursor.getColumnIndex(CourseInfoEntry.COLUMN_COURSE_TITLE);
         mNoteTitlePos = mCursor.getColumnIndex(NoteInfoEntry.COLUMN_NOTE_TITLE);
+        //do not table qualify column names when dealing with Cursor
         mIdPos = mCursor.getColumnIndex(NoteInfoEntry._ID);
     }
 
@@ -107,6 +109,7 @@ public class NoteRecyclerAdapter extends RecyclerView.Adapter<NoteRecyclerAdapte
                 public void onClick(View v) {
                     Intent intent = new Intent(mContext, NoteActivity.class);
                     intent.putExtra(NoteActivity.NOTE_ID, mId);
+                    intent.putExtra(NoteActivity.NOTE_SIZE, getItemCount());
                     mContext.startActivity(intent);
                 }
             });
