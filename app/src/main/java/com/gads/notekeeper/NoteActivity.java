@@ -1,15 +1,18 @@
 package com.gads.notekeeper;
 
+import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.lifecycle.ViewModelProvider;
@@ -225,18 +228,28 @@ public class NoteActivity extends AppCompatActivity implements LoaderManager.Loa
     }
 
     private void deleteNoteFromDatabase() {
-        final String selection = NoteInfoEntry._ID + " = ?";
-        final String[] selectionArgs = {Integer.toString(mNoteId)};
 
-        //using Async task to carryout the database interaction in the background
+        // deleting note from the SQLiteDatabase using the NoteKeeper Content Provider
         AsyncTask task = new AsyncTask() {
             @Override
             protected Object doInBackground(Object[] objects) {
-                SQLiteDatabase db = mDbOpenHelper.getWritableDatabase();
-                return db.delete(NoteInfoEntry.TABLE_NAME, selection, selectionArgs);
+                return getContentResolver().delete(mNoteUri, null, null);
             }
         };
         task.execute();
+
+//        final String selection = NoteInfoEntry._ID + " = ?";
+//        final String[] selectionArgs = {Integer.toString(mNoteId)};
+//
+//        //using Async task to carryout the database interaction in the background
+//        AsyncTask task = new AsyncTask() {
+//            @Override
+//            protected Object doInBackground(Object[] objects) {
+//                SQLiteDatabase db = mDbOpenHelper.getWritableDatabase();
+//                return db.delete(NoteInfoEntry.TABLE_NAME, selection, selectionArgs);
+//            }
+//        };
+//        task.execute();
     }
 
     @Override
@@ -247,20 +260,23 @@ public class NoteActivity extends AppCompatActivity implements LoaderManager.Loa
     }
 
     private void storePreviousNoteValues() {
-        final String selection = NoteInfoEntry._ID + " = ?";
+
+        // Notes Table content Uri
+        Uri uri = Notes.CONTENT_URI;
+
+        final String selection = Notes._ID + " = ?";
         final String[] selectionArgs = {Integer.toString(mNoteId)};
 
         //getting the original note values from the ViewModel
         ContentValues values = new ContentValues();
-        values.put(NoteInfoEntry.COLUMN_COURSE_ID, mViewModel.mOriginalNoteCourseId);
-        values.put(NoteInfoEntry.COLUMN_NOTE_TITLE, mViewModel.mOriginalNoteTitle);
-        values.put(NoteInfoEntry.COLUMN_NOTE_TEXT, mViewModel.mOriginalNoteText);
+        values.put(Notes.COLUMN_COURSE_ID, mViewModel.mOriginalNoteCourseId);
+        values.put(Notes.COLUMN_NOTE_TITLE, mViewModel.mOriginalNoteTitle);
+        values.put(Notes.COLUMN_NOTE_TEXT, mViewModel.mOriginalNoteText);
 
         AsyncTask task = new AsyncTask() {
             @Override
             protected Object doInBackground(Object[] objects) {
-                SQLiteDatabase db = mDbOpenHelper.getWritableDatabase();
-                return db.update(NoteInfoEntry.TABLE_NAME, values, selection, selectionArgs);
+                return getContentResolver().update(uri, values, selection, selectionArgs);
             }
         };
         task.execute();
@@ -293,26 +309,45 @@ public class NoteActivity extends AppCompatActivity implements LoaderManager.Loa
     }
 
     private void saveNoteToDatabase (String courseId, String noteTitle, String noteText) {
-        //selection criteria to identify which note to update
-        final String selection = NoteInfoEntry._ID + " = ?";
-        final String[] selectionArgs = {Integer.toString(mNoteId)};
 
         //identifies the columns and their values
         ContentValues values = new ContentValues();
-        values.put(NoteInfoEntry.COLUMN_COURSE_ID, courseId);
-        values.put(NoteInfoEntry.COLUMN_NOTE_TITLE, noteTitle);
-        values.put(NoteInfoEntry.COLUMN_NOTE_TEXT, noteText);
+        values.put(Notes.COLUMN_COURSE_ID, courseId);
+        values.put(Notes.COLUMN_NOTE_TITLE, noteTitle);
+        values.put(Notes.COLUMN_NOTE_TEXT, noteText);
 
-        //using Async task to carryout the database interaction in the background
+
+        // updating the SQLiteDatabase using the NoteKeeper Content Provider
         AsyncTask task = new AsyncTask() {
             @Override
             protected Object doInBackground(Object[] objects) {
-                SQLiteDatabase db = mDbOpenHelper.getWritableDatabase();
-                //code to update the note in the database
-                return db.update(NoteInfoEntry.TABLE_NAME, values, selection, selectionArgs);
+
+                return getContentResolver().update(mNoteUri, values, null, null);
             }
         };
         task.execute();
+
+
+//        //selection criteria to identify which note to update
+//        final String selection = NoteInfoEntry._ID + " = ?";
+//        final String[] selectionArgs = {Integer.toString(mNoteId)};
+//
+//        //identifies the columns and their values
+//        ContentValues values = new ContentValues();
+//        values.put(NoteInfoEntry.COLUMN_COURSE_ID, courseId);
+//        values.put(NoteInfoEntry.COLUMN_NOTE_TITLE, noteTitle);
+//        values.put(NoteInfoEntry.COLUMN_NOTE_TEXT, noteText);
+//
+//        //using Async task to carryout the database interaction in the background
+//        AsyncTask task = new AsyncTask() {
+//            @Override
+//            protected Object doInBackground(Object[] objects) {
+//                SQLiteDatabase db = mDbOpenHelper.getWritableDatabase();
+//                //code to update the note in the database
+//                return db.update(NoteInfoEntry.TABLE_NAME, values, selection, selectionArgs);
+//            }
+//        };
+//        task.execute();
     }
 
     @Override
@@ -424,16 +459,26 @@ public class NoteActivity extends AppCompatActivity implements LoaderManager.Loa
     private CursorLoader createLoaderNotes() {
         //create a boolean value to check if the notes have been queried
         mNotesQueryFinished = false;
-        // query the SQLiteDatabase from the NoteKeeper Content Provider
+
+        // using the rowUri to request the note from the NoteKeeper Content Provider
         String[] noteColumns = {
                 Notes.COLUMN_COURSE_ID,
                 Notes.COLUMN_NOTE_TITLE,
                 Notes.COLUMN_NOTE_TEXT};
 
-        String selection = NoteInfoEntry._ID + " = ?";
-        String[] selectionArgs = {Integer.toString(mNoteId)};
+        mNoteUri = ContentUris.withAppendedId(Notes.CONTENT_URI, mNoteId);
+        return new CursorLoader(this, mNoteUri, noteColumns, null, null, null);
 
-        return new CursorLoader(this, Notes.CONTENT_URI, noteColumns, selection, selectionArgs, null);
+//        // query the SQLiteDatabase from the NoteKeeper Content Provider
+//        String[] noteColumns = {
+//                Notes.COLUMN_COURSE_ID,
+//                Notes.COLUMN_NOTE_TITLE,
+//                Notes.COLUMN_NOTE_TEXT};
+//
+//        String selection = NoteInfoEntry._ID + " = ?";
+//        String[] selectionArgs = {Integer.toString(mNoteId)};
+//
+//        return new CursorLoader(this, Notes.CONTENT_URI, noteColumns, selection, selectionArgs, null);
 
 //        return new CursorLoader(this){
 //            @Override
