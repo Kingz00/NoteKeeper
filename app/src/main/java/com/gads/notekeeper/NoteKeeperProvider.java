@@ -1,6 +1,7 @@
 package com.gads.notekeeper;
 
 import android.content.ContentProvider;
+import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.UriMatcher;
@@ -17,6 +18,7 @@ import com.gads.notekeeper.NoteKeeperProviderContract.Notes;
 
 public class NoteKeeperProvider extends ContentProvider {
 
+    private static final String MIME_VENDOR_TYPE = "vnd." + NoteKeeperProviderContract.AUTHORITY + ".";
     private NotesOpenHelper mDbOpenHelper;
 
     // creates an instance of the Uri Matcher class for interpreting Uris contained within the NoteKeeper content provider
@@ -100,9 +102,41 @@ public class NoteKeeperProvider extends ContentProvider {
 
     @Override
     public String getType(Uri uri) {
-        // TODO: Implement this to handle requests for the MIME type of the data
-        // at the given URI.
-        throw new UnsupportedOperationException("Not yet implemented");
+        String mimeType = null;
+
+        int uriMatch = sUriMatcher.match(uri);
+        switch (uriMatch){
+            case COURSES:
+                // mimetype for courses table uri that returns multiple rows
+                // vnd.android.cursor.dir/vnd.com.gads.notekeeper.provider.courses
+                mimeType = ContentResolver.CURSOR_DIR_BASE_TYPE + "/" +
+                        MIME_VENDOR_TYPE + Courses.PATH;
+                break;
+            case NOTES:
+                mimeType = ContentResolver.CURSOR_DIR_BASE_TYPE + "/" +
+                        MIME_VENDOR_TYPE + Notes.PATH;
+                break;
+            case NOTES_EXPANDED:
+                mimeType = ContentResolver.CURSOR_DIR_BASE_TYPE + "/" +
+                        MIME_VENDOR_TYPE + Notes.PATH_EXPANDED;
+                break;
+            case COURSES_ROW:
+                // mimetype for individual row uris in the courses table
+                // vnd.android.cursor.item/vnd.com.gads.notekeeper.provider.courses
+                mimeType = ContentResolver.CURSOR_ITEM_BASE_TYPE + "/" +
+                        MIME_VENDOR_TYPE + Courses.PATH;
+                break;
+            case NOTES_ROW:
+                mimeType = ContentResolver.CURSOR_ITEM_BASE_TYPE + "/" +
+                        MIME_VENDOR_TYPE + Notes.PATH;
+                break;
+            case NOTES_EXPANDED_ROW:
+                mimeType = ContentResolver.CURSOR_ITEM_BASE_TYPE + "/" +
+                        MIME_VENDOR_TYPE + Notes.PATH_EXPANDED;
+                break;
+        }
+
+        return mimeType;
     }
 
     @Override
