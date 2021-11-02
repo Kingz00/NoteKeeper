@@ -5,6 +5,11 @@ import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.StrictMode;
+import android.util.Log;
+import android.view.Gravity;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.Menu;
@@ -42,6 +47,7 @@ import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<Cursor> {
 
+    private static final String LIFECYCLE_DEBUG_TAG = "com.gads.notekeeper_Lifecycle";
     public static final int LOADER_NOTES = 0;
     private AppBarConfiguration mAppBarConfiguration;
     private ActivityMainBinding binding;
@@ -56,9 +62,13 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Log.d(LIFECYCLE_DEBUG_TAG, "******OnCreate********");
 
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+
+        // Using StrictMode class to detect undesirable work running on the app's Main Thread
+        enableStrictMode();
 
         //instance of the SQLiteOpenHelper
         mDbOpenHelper = new NotesOpenHelper(this);
@@ -90,6 +100,17 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
         initializeDisplayContent();
 
         navClickHandling();
+    }
+
+    private void enableStrictMode() {
+        // Ensure the strict mode class isn't enabled during production, only during debugging
+        if (BuildConfig.DEBUG){
+            StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder()
+                    .detectAll()
+                    .penaltyLog()
+                    .build();
+            StrictMode.setThreadPolicy(policy);
+        }
     }
 
     private void navClickHandling() {
@@ -185,9 +206,29 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
     @Override
     protected void onResume() {
         super.onResume();
+        Log.d(LIFECYCLE_DEBUG_TAG, "******OnResume********");
         //getting latest notes from the Database
         LoaderManager.getInstance(this).restartLoader(LOADER_NOTES, null, this);
         updateNavHeader();
+
+        // code to open the navigation drawer when the MainActivity launches
+        openDrawer();
+    }
+
+    private void openDrawer() {
+        // Using a handler to delay opening the drawer
+        Handler handler = new Handler(Looper.getMainLooper());
+        // add work to the message queue
+        // PS: Can put work into the message queue either with the class message or the runnable interface
+        // using the postDelayed method, we can pass a timeframe for how long we want the delay to
+        // be before the code is run (in milliseconds)
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                DrawerLayout drawer = binding.drawerLayout;
+                drawer.openDrawer(GravityCompat.START);
+            }
+        }, 1000);
     }
 
     private void loadNotes() {
@@ -217,13 +258,23 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
 
         if (id == R.id.action_settings){
             startActivity(new Intent(MainActivity.this, SettingsActivity.class));
+        } else if (id == R.id.action_backup_notes){
+            backupNotes();
         }
 
         return super.onOptionsItemSelected(item);
     }
 
+    private void backupNotes() {
+        // code to startup backup service
+        Intent intent = new Intent(this, NoteBackupService.class);
+        intent.putExtra(NoteBackupService.EXTRA_COURSE_ID, NoteBackup.ALL_COURSES);
+        startService(intent);
+    }
+
     @Override
     protected void onDestroy() {
+        Log.d(LIFECYCLE_DEBUG_TAG, "******OnDestroy********");
         mDbOpenHelper.close();
         super.onDestroy();
     }
@@ -290,6 +341,7 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
     @Override
     protected void onPause() {
         super.onPause();
+        Log.d(LIFECYCLE_DEBUG_TAG, "******OnPause********");
         //destroy the loader before leaving the activity
         LoaderManager.getInstance(this).destroyLoader(LOADER_NOTES);
     }

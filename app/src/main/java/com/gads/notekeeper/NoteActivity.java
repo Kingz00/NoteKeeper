@@ -21,6 +21,7 @@ import androidx.loader.content.CursorLoader;
 import androidx.loader.content.Loader;
 
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.ArrayAdapter;
@@ -39,6 +40,7 @@ import java.util.List;
 
 public class NoteActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<Cursor> {
     //A constant for the putExtra gotten from NoteListActivity
+    private static final String TAG = "Thread_DEBUG";
     public static final String NOTE_ID = "com.gads.notekeeper.NOTE_ID";
     public static final String NOTE_SIZE = "com.gads.notekeeper.NOTE_SIZE";
     public static final int ID_NOT_SET = -1;
@@ -192,19 +194,40 @@ public class NoteActivity extends AppCompatActivity implements LoaderManager.Loa
         values.put(Notes.COLUMN_NOTE_TEXT, "");
 
         //using Async task to carryout the database interaction in the background
-        AsyncTask task = new AsyncTask() {
-            @Override
-            protected Object doInBackground(Object[] objects) {
-//                SQLiteDatabase db = mDbOpenHelper.getWritableDatabase();
-//                mNoteId = (int) db.insert(NoteInfoEntry.TABLE_NAME, null, values);
-//                return mNoteId;
+        /** The first type parameter passed into the AsyncTask indicates the
+         * type to be passed in the doInBackground method of the AsyncTask
+         * The third type parameter indicates the return type for the doInBackground method
+         * used by the onPostExecute method to do work on the Main Thread
+         */
 
-                // using Content Provider to insert new rows to the database
-                mNoteUri = getContentResolver().insert(Notes.CONTENT_URI, values);
-                return mNoteUri;
+        AsyncTask<ContentValues, Void, Uri> task = new AsyncTask<ContentValues, Void, Uri>() {
+            @Override
+            protected Uri doInBackground(ContentValues... contentValues) {
+
+                // Log a debug message to find out the thread the doInBackground method is being called on
+                Log.d(TAG, "doInBackground - thread: " + Thread.currentThread().getId());
+
+                // Since the contentValues received is an array of ContentValues, to access the
+                // single contentValues passed into the execute method, we need to access the initial
+                // element of the contentValues array in the doInBackground method
+                ContentValues insertValues = contentValues[0];
+                Uri rowUri = getContentResolver().insert(Notes.CONTENT_URI, insertValues);
+                return rowUri;
+            }
+
+            @Override
+            protected void onPostExecute(Uri uri) {
+                // Log a debug message to find out the thread the onPostExecute method is being called on
+                Log.d(TAG, "onPostExecute - thread: " + Thread.currentThread().getId());
+                mNoteUri = uri;
             }
         };
-        task.execute();
+
+        // Log a debug message to find out the thread the execute method is being called on
+        Log.d(TAG, "Call to execute - thread: " + Thread.currentThread().getId());
+
+        // The parameter passed into the execute method is passed into the doInBackground
+        task.execute(values);
     }
 
     @Override
