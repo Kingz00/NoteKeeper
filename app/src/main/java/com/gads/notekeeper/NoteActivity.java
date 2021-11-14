@@ -1,5 +1,7 @@
 package com.gads.notekeeper;
 
+import android.app.AlarmManager;
+import android.app.PendingIntent;
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Intent;
@@ -20,6 +22,7 @@ import androidx.loader.app.LoaderManager;
 import androidx.loader.content.CursorLoader;
 import androidx.loader.content.Loader;
 
+import android.os.SystemClock;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.Menu;
@@ -410,8 +413,29 @@ public class NoteActivity extends AppCompatActivity implements LoaderManager.Loa
         // extract the noteId from the rowUri
         int noteId = (int) ContentUris.parseId(mNoteUri);
 
-        NoteReminderNotification.createNotificationChannel(this);
-        NoteReminderNotification.notify(this, noteTitle, noteText, noteId);
+        // pass the values for the notification to the NoteReminder broadcast receiver using an
+        // intent with extras
+        Intent intent = new Intent(this, NoteReminderReceiver.class);
+        intent.putExtra(NoteReminderReceiver.EXTRA_NOTE_TITLE, noteTitle);
+        intent.putExtra(NoteReminderReceiver.EXTRA_NOTE_TEXT, noteText);
+        intent.putExtra(NoteReminderReceiver.EXTRA_NOTE_ID, noteId);
+
+        // pending intent for the broadcast receiver
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(this, 0, intent,
+                PendingIntent.FLAG_UPDATE_CURRENT);
+
+        // using the AlarmManager to schedule a call to the broadcast receiver to display the
+        // note reminder notification at sometime in the future
+        AlarmManager alarmManager = (AlarmManager) getSystemService(ALARM_SERVICE);
+
+        // elapsed real time gives the number of milliseconds that has passed since the device was
+        // last rebooted
+        long currentTimeInMilliseconds = SystemClock.elapsedRealtime();
+        // variable to calculate 1 hours in milliseconds
+        long ONE_HOUR = 60 * 60 * 1000;
+
+        long alarmTime = currentTimeInMilliseconds + ONE_HOUR;
+        alarmManager.set(AlarmManager.ELAPSED_REALTIME, alarmTime, pendingIntent);
     }
 
     //Gets called only when the menu is initially displayed.

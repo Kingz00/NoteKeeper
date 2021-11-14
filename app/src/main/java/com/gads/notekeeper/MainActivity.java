@@ -1,5 +1,8 @@
 package com.gads.notekeeper;
 
+import android.app.job.JobInfo;
+import android.app.job.JobScheduler;
+import android.content.ComponentName;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
@@ -7,6 +10,7 @@ import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.PersistableBundle;
 import android.os.StrictMode;
 import android.util.Log;
 import android.view.Gravity;
@@ -49,6 +53,7 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
 
     private static final String LIFECYCLE_DEBUG_TAG = "com.gads.notekeeper_Lifecycle";
     public static final int LOADER_NOTES = 0;
+    private static final int NOTE_UPLOADER_JOB_ID = 1;
     private AppBarConfiguration mAppBarConfiguration;
     private ActivityMainBinding binding;
     private NoteRecyclerAdapter mNoteRecyclerAdapter;
@@ -260,9 +265,32 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
             startActivity(new Intent(MainActivity.this, SettingsActivity.class));
         } else if (id == R.id.action_backup_notes){
             backupNotes();
+        } else if (id == R.id.action_upload_notes) {
+            scheduleNoteUpload();
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    private void scheduleNoteUpload() {
+        // using PersistableBundle class to associate the extras with the Job information
+        PersistableBundle extras = new PersistableBundle();
+        // pass the Notes Table Uri as a String to the bundle
+        extras.putString(NoteUploaderJobService.EXTRA_DATA_URI, Notes.CONTENT_URI.toString());
+
+
+        // description of the component that will handle the Job
+        ComponentName componentName = new ComponentName(this, NoteUploaderJobService.class);
+        // instance of the JobInfo class to provide the information for the job
+        JobInfo jobInfo = new JobInfo.Builder(NOTE_UPLOADER_JOB_ID, componentName)
+                // criteria for network access to upload the note
+                .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
+                // associating extras with the Job information
+                .setExtras(extras)
+                .build();
+        // schedule the Job using the JobScheduler
+        JobScheduler jobScheduler = (JobScheduler) getSystemService(JOB_SCHEDULER_SERVICE);
+        jobScheduler.schedule(jobInfo);
     }
 
     private void backupNotes() {
