@@ -14,8 +14,7 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
         android:layout_marginTop="16dp"
-        android:layout_marginEnd="8dp"
-        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/guideline2"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
@@ -36,23 +35,28 @@
         android:id="@+id/text_note_text"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
         android:ems="10"
         android:gravity="start|top"
         android:hint="@string/note_text"
         android:inputType="textMultiLine"
-        app:layout_constraintEnd_toEndOf="@+id/text_note_title"
-        app:layout_constraintStart_toStartOf="@+id/text_note_title"
-        app:layout_constraintTop_toBottomOf="@+id/text_note_title" />
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="@+id/guideline2"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/guideline2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintGuide_percent="0.5" />
 
     <com.gads.notekeeper.ModuleStatusView
         android:id="@+id/moduleStatusView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        app:layout_constraintStart_toStartOf="@+id/text_note_text"
-        app:layout_constraintTop_toBottomOf="@+id/text_note_text"
-        app:outlineColor="@color/light_blue_600"
-        app:outlineWidth="5dp"
-        app:shape="circle" />
+        app:layout_constraintEnd_toEndOf="@+id/text_note_title"
+        app:layout_constraintStart_toStartOf="@+id/text_note_title"
+        app:layout_constraintTop_toBottomOf="@+id/text_note_title" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

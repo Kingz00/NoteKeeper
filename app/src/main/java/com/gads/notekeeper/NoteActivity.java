@@ -49,7 +49,6 @@ public class NoteActivity extends AppCompatActivity implements LoaderManager.Loa
     public static final int ID_NOT_SET = -1;
     public static final int LOADER_NOTES = 0;
     public static final int LOADER_COURSES = 1;
-    private NoteInfo mNote;
     private boolean mIsNewNote;
     private Spinner mSpinnerCourses;
     private EditText mTextNoteTitle;
@@ -62,12 +61,12 @@ public class NoteActivity extends AppCompatActivity implements LoaderManager.Loa
     private int mCourseIdPos;
     private int mNoteTitlePos;
     private int mNoteTextPos;
-    private SQLiteDatabase mDb;
     private SimpleCursorAdapter mAdaperCourses;
     private boolean mCoursesQueryFinished;
     private boolean mNotesQueryFinished;
     private int mNoteSize;
     private Uri mNoteUri;
+    private ModuleStatusView mViewModuleStatus;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -114,6 +113,22 @@ public class NoteActivity extends AppCompatActivity implements LoaderManager.Loa
         }
 //            getLoaderManager().initLoader(LOADER_NOTES, null,  this);
 
+        mViewModuleStatus = (ModuleStatusView) findViewById(R.id.moduleStatusView);
+
+        loadModuleStatusValues();
+
+    }
+
+    private void loadModuleStatusValues() {
+        int totalNumberOfModules = 11;
+        int completedNumberOfModules = 7;
+
+        boolean[] moduleStatus = new boolean[totalNumberOfModules];
+        for (int moduleIndex = 0; moduleIndex<completedNumberOfModules; moduleIndex++) {
+            moduleStatus[moduleIndex] = true;
+        }
+
+        mViewModuleStatus.setModuleStatus(moduleStatus);
     }
 
     //method for list of courses in the spinner
